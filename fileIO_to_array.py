@@ -2,8 +2,10 @@
 from pprint import pprint as pp
 
 def read_csv(filename):
-    '''1. aquire interface config data from interfaces.csv file'''
-
+    '''aquire interface config data from a CSV file'''
+    with open (filename,'r') as f:
+        rl=f.readlines()
+        array=[i.rstrip('\n').split(',') for i in rl]
     return array
 if __name__ =='__main__':
     array=read_csv('interfaces.csv')

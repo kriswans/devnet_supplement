@@ -7,12 +7,14 @@ from getpass import getpass
 packages.urllib3.disable_warnings()
 
 def read_csv(filename):
-    '''1. aquire interface config data from a CSV file, using function from previous exercise'''
-
+    '''aquire interface config data from a CSV file'''
+    with open (filename,'r') as f:
+        rl=f.readlines()
+        array=[i.rstrip('\n').split(',') for i in rl]
     return array
 
 def int_cfg(int_name,ip,netmask,description,enabled,type):
-    '''return individual interface config, use this to build 'int_list' '''
+    '''return individual interface config'''
     intf={"name": int_name,"description": description,"type": type,"enabled": enabled,"ietf-ip:ipv4": {"address": [{"ip": ip,"netmask": netmask}]},"ietf-ip:ipv6": {}}
     return intf
 
@@ -50,15 +52,46 @@ def build_payload(array):
     payload=dumps(payload_json)
     return payload,payload_json
 
+def merge_missing_data(payload_json,device,username,password):
+    '''compares GET data with config data from CSV file and merges interfaces not present'''
+    url = "https://%s/restconf/data/ietf-interfaces:interfaces/"%device
+    headers = {'Accept': "application/yang-data+json",'Content-Type': "application/yang-data+json"}
+    response = request("GET", url, headers=headers, auth=HTTPBasicAuth(username, password), verify=False)
+    get_int_json=response.json()
+    missing_index_list=[]
+    get_ints=[i["name"] for i in get_int_json["ietf-interfaces:interfaces"]["interface"]]
+    cfg_ints=[i["name"] for i in payload_json["ietf-interfaces:interfaces"]["interface"]]
+    for i in get_ints:
+        if i not in cfg_ints:
+            missing_index_list.append(get_ints.index(i))
+    for i in missing_index_list:
+        payload_json["ietf-interfaces:interfaces"]["interface"].insert(i,get_int_json["ietf-interfaces:interfaces"]["interface"][i])
+    print(dumps(payload_json,indent=2))
+    payload=dumps(payload_json)
+    return payload,payload_json
 
-def main(filename):
-    '''2. build a main function that uses the sample requests code below to PUT the interface config to the CSR while
-    using the previously functions'''
-
-    '''SAMPLE CODE: url = "https://%s/restconf/data/ietf-interfaces:interfaces/"%device
+def put_intf_cfg (filename, device, username, password, delete=False):
+    '''send a PUT to the specified device with the payload data derived from the CSV'''
+    array=read_csv(filename)
+    payload,payload_json=build_payload(array)
+    if delete == False:
+        payload,payload_json=merge_missing_data(payload_json,device,username,password)
+    url = "https://%s/restconf/data/ietf-interfaces:interfaces/"%device
     headers = {'Accept': "application/yang-data+json",'Content-Type': "application/yang-data+json"}
     response = request("PUT", url, data=payload, headers=headers, auth=HTTPBasicAuth(username, password), verify=False)
-    print(response.text)'''
+    print(response.text)
 
 if __name__ == "__main__":
-    '''3. call your main function and verify results'''
+    try:
+        skip,filename,device,username,*trash=argv
+        password=getpass("\nInput Password for %s on device %s: "%(username,device))
+    except:
+        print('\nexample syntax: #> python csv_to_router_exercise.py interfaces.csv csr admin\n')
+        filename,device,username,password=('interfaces.csv','csr','admin','cisco123')
+
+    delete_var=input("Delete interfaces not present in CSV? (y/n) :  ")
+    if delete_var.lower() == 'y':
+        delete_var=True
+    else:
+        delete_var=False
+    put_intf_cfg(filename,device,username,password,delete_var)

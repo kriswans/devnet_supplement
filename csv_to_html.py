@@ -38,8 +38,10 @@ ROW='''\
   '''
 
 def read_csv(filename):
-    '''aquire interface config data from a CSV file, use function from previous exercise'''
-
+    '''aquire interface config data from a CSV file'''
+    with open (filename,'r') as f:
+        rl=f.readlines()
+        array=[i.rstrip('\n').split(',') for i in rl]
     return array
 
 
@@ -48,14 +50,15 @@ def loop_thru_array(filename):
     array=read_csv(filename)
     rows=''
     for i in array:
-        '''1. unpack list'''
-        '''2. assign unpacked list elements to dictionary'''
-        '''3. substitute dictionary values into 'ROW' and assign to variable 'row' '''
-        rows=rows+row ###concatenates row data into variable rows
-    return '''4. substitute 'rows' into TABLE and return TABLE from this function'''
+        int_name,ip,netmask,description,enabled=i
+        d={'int_name':int_name,'ip':ip,'netmask':netmask}
+        row=ROW%d
+        rows=rows+row
+    return TABLE%rows
 
 
 
 if __name__=='__main__':
     html=loop_thru_array('interfaces.csv')
-    '''5. write html data to file named 'table.html' '''
+    with open('table.html','w') as f:
+        f.write(html)

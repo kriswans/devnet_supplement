@@ -2,8 +2,10 @@ from json import dumps
 
 
 def read_csv(filename):
-    '''aquire interface config data from a CSV file, use function from previous exercise'''
-
+    '''aquire interface config data from a CSV file'''
+    with open (filename,'r') as f:
+        rl=f.readlines()
+        array=[i.rstrip('\n').split(',') for i in rl]
     return array
 
 
@@ -15,10 +17,10 @@ def int_cfg(int_name,ip,netmask,description,enabled):
 def loop_thru_array(filename):
     array=read_csv(filename)
     for i in array:
-        '''1. unpack i into function int_cfg's arguments'''
-        '''2. aquire interface JSON data from unpacked arguments and assign to variable 'intf' '''
+        int_name,ip,netmask,description,enabled=i
+        intf=int_cfg(int_name,ip,netmask,description,enabled)
         print(dumps(intf,indent=2))
 
 
 if __name__=='__main__':
-    '''3. call function to print JSON formatted data from filename interfaces.csv'''
+    loop_thru_array('interfaces.csv')
